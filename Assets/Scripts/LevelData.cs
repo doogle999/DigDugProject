@@ -12,7 +12,7 @@ public class LevelData
 	public List<Vector2> removeHWalls;
 
 	public List<Vector2> blimps;
-	Vector2 player;
+	public Vector2 player;
 
 	public LevelData(int w, int h, List<Vector2> rT, List<Vector2> rV, List<Vector2> rH, List<Vector2> b, Vector2 p)
 	{

@@ -16,7 +16,7 @@ public class Movement : MonoBehaviour
 		grid = GameObject.FindGameObjectWithTag("Grid").GetComponent<Grid>();
 	}
 
-	protected void setTransform(Vector2 positionScaled, Direction.Dir direction, float distance)
+	public void setTransform(Vector2 positionScaled, Direction.Dir direction, float distance)
 	{
 		transform.position = grid.convertScaledToLocal(positionScaled) + (Vector2)grid.transform.position;
 		transform.position += (Vector3)grid.convertScaledToLocal(Direction.convertDirToUnitVector2(direction) * distance);

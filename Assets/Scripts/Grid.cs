@@ -7,19 +7,31 @@ public class Grid : MonoBehaviour
 	[SerializeField] private int width;
 	[SerializeField] private int height;
 
+	private const int heightTextureCount = 4;
+
 	private float tileSize = 1.0F;
 	private float tileTextureSize = 1.0F;
 	private bool[,] tileState;
 
-	private float wallThickness = 0.1F;
-	private float wallTextureThickness = 0.1F;
+	private float wallThickness = 0.125F;
+	private float wallTextureThickness = 0.125F;
 	private bool[,] vWallState;
 	private bool[,] hWallState;
 
 	[SerializeField] private Material tileMaterial;
+	[SerializeField] private Material vWallMaterial;
+	[SerializeField] private Material hWallMaterial;
+
+	[SerializeField] private GameObject blimp;
 
 	[SerializeField] private GameObject gridMeshChild;
 	private GameObject[] gridMeshChildren = new GameObject[3];
+
+	private bool countDestroyTileForPoints = false;
+
+	public Vector2 defaultPlayerPosition; 
+
+	[SerializeField] private GameObject gameStartMusic;
 	
 	enum ChildIndexes
 	{
@@ -31,6 +43,8 @@ public class Grid : MonoBehaviour
 	void Start()
 	{
 		generateMeshChildren();
+
+		loadLevelData(LevelManager.loadLevelOne());
 	}
 	
 	void Update()
@@ -40,6 +54,7 @@ public class Grid : MonoBehaviour
 	
 	public void loadLevelData(LevelData lD)
 	{
+		countDestroyTileForPoints = false;
 		width = lD.width;
 		height = lD.height;
 
@@ -58,6 +73,22 @@ public class Grid : MonoBehaviour
 		{
 			destroyHWall(lD.removeHWalls[i]);
 		}
+
+		GameObject[] blimps = new GameObject[lD.blimps.Count];
+		for(int i = 0; i < lD.blimps.Count; i++)
+		{
+			blimps[i] = Instantiate(blimp);
+			blimps[i].transform.parent = transform.parent;
+			BlimpAIMovement Ai = blimps[i].GetComponent<BlimpAIMovement>();
+			Ai.positionScaled = lD.blimps[i];
+			Ai.transform.position = convertScaledToLocal(Ai.positionScaled) + (Vector2)transform.position;
+		}
+
+		GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>().positionScaled = lD.player;
+		defaultPlayerPosition = lD.player;
+		PlayerMovement pm = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>();
+		pm.transform.position = convertScaledToLocal(pm.positionScaled) + (Vector2)transform.position;
+		countDestroyTileForPoints = true;
 	}
 	private void generateMeshChildren()
 	{
@@ -196,6 +227,12 @@ public class Grid : MonoBehaviour
 				}
 
 				gridMeshChildren[(int)ChildIndexes.tiles].GetComponent<MeshFilter>().mesh.vertices = v;
+
+				if(countDestroyTileForPoints)
+				{
+					Scoring sc = GameObject.Find("Player One Label").GetComponent<Scoring>();
+					sc.increaseScore.Invoke(sc.tileScore);
+				}
 			}
 		}
 	}
@@ -278,7 +315,12 @@ public class Grid : MonoBehaviour
 				for(int k = 0; k < 4; k++)
 				{
 					vertices[(j + i * width) * 4 + k] = new Vector3(j * tileSize, i * tileSize) + new Vector3(k / 2 * tileSize, k % 2 * tileSize); // Adds in this order: bottom left, top left, bottom right, top right
-					uvs[(j + i * width) * 4 + k] = new Vector2(k / 2 * tileTextureSize, k % 2 * tileTextureSize);
+					int zone = (int)((i / ((float)height / (heightTextureCount))));
+					if(zone >= heightTextureCount)
+					{
+						zone = heightTextureCount - 1;
+					}
+					uvs[(j + i * width) * 4 + k] = new Vector2((k / 2 * (1.0F / heightTextureCount)) + zone * (1.0F / heightTextureCount), k % 2 * tileTextureSize);
 				}
 				for(int k = 0; k < 3; k++)
 				{
@@ -311,7 +353,12 @@ public class Grid : MonoBehaviour
 				for(int k = 0; k < 4; k++)
 				{
 					vertices[(j + i * (width - 1)) * 4 + k] = new Vector3((j + 1) * tileSize, i * tileSize) + new Vector3((k / 2 * 2 - 1) * wallThickness / 2.0F, k % 2 * tileSize); // Adds in this order: bottom left, top left, bottom right, top right
-					uvs[(j + i * (width - 1)) * 4 + k] = new Vector2(k / 2 * wallTextureThickness, k % 2 * tileTextureSize);
+					int zone = (int)((i / ((float)height / (heightTextureCount))));
+					if(zone >= heightTextureCount)
+					{
+						zone = heightTextureCount - 1;
+					}
+					uvs[(j + i * (width - 1)) * 4 + k] = new Vector2(k / 2 * wallTextureThickness, k % 2 * tileTextureSize + zone * (1.0F / heightTextureCount));
 				}
 				for(int k = 0; k < 3; k++)
 				{
@@ -362,5 +409,24 @@ public class Grid : MonoBehaviour
 		mesh.triangles = triangles;
 
 		return mesh;
+	}
+
+	public void onPlayerDie()
+	{
+		GameObject player = GameObject.FindGameObjectWithTag("Player");
+		Destroy(player.GetComponent<PlayerMovement>());
+		player.AddComponent<PlayerMovement>();
+		player.GetComponent<AudioSource>().Stop();
+		player.transform.rotation = Quaternion.identity;
+		PlayerMovement pm = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>();
+		pm.positionScaled = GameObject.FindGameObjectWithTag("Grid").GetComponent<Grid>().defaultPlayerPosition;
+		pm.setTransform(pm.positionScaled, 0, 0);
+
+		Life.lives--;
+		if(Life.lives < 0)
+		{
+			Application.Quit();
+		}
+		gameStartMusic.SetActive(true);
 	}
 }

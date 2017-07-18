@@ -5,17 +5,20 @@ using UnityEngine.UI;
 
 public class Life : MonoBehaviour {
 
-	public Text livesText;
+	private Text livesText;
 
 	public static int lives = 3;
 
 	// Use this for initialization
-	void Start () {
+	void Start()
+	{
+		livesText = GetComponent<Text>();
 	}
 
 	// Update is called once per frame
-	void Update () {
-		string result = "LIVES: " + lives.ToString();
+	void Update()
+	{
+		string result = "LIVES:\n" + lives.ToString();
 		livesText.text = result;
 	}
 }

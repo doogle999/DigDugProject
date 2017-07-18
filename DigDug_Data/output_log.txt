@@ -1,0 +1,40 @@
+Initialize engine version: 5.6.2f1 (a2913c821e27)
+GfxDevice: creating device client; threaded=1
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce GTX 970M (ID=0x13d8)
+    Vendor:   NVIDIA
+    VRAM:     3040 MB
+    Driver:   22.21.13.8253
+Begin MonoManager ReloadAssembly
+Platform assembly: D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\UnityEngine.dll (this message is harmless)
+Loading D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\UnityEngine.dll into Unity Child Domain
+Platform assembly: D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\Assembly-CSharp.dll (this message is harmless)
+Loading D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\Assembly-CSharp.dll into Unity Child Domain
+Platform assembly: D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\UnityEngine.UI.dll (this message is harmless)
+Loading D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\UnityEngine.UI.dll into Unity Child Domain
+Platform assembly: D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\UnityEngine.Networking.dll (this message is harmless)
+Loading D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\UnityEngine.Networking.dll into Unity Child Domain
+- Completed reload, in  0.090 seconds
+Platform assembly: D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\System.Core.dll (this message is harmless)
+Platform assembly: D:\NHSGA\Unity\Files\DigDugProject\DigDug_Data\Managed\System.dll (this message is harmless)
+desktop: 1920x1080 60Hz; virtual: 1920x1080 at 0,0
+<RI> Initializing input.
+<RI> Input initialized.
+<RI> Initialized touch support.
+UnloadTime: 3.104395 ms
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.466567 ms
+
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 385.
+Total: 1.116049 ms (FindLiveObjects: 0.013432 ms CreateObjectMapping: 0.060839 ms MarkObjects: 0.207012 ms  DeleteObjects: 0.834765 ms)
+
+Pause Button (UnityEngine.UI.Button)
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/DebugBindings.gen.cpp Line: 51)
+
+Setting up 4 worker threads for Enlighten.
+  Thread -> id: 7248 -> priority: 1 
+  Thread -> id: ddf4 -> priority: 1 
+  Thread -> id: d818 -> priority: 1 
+  Thread -> id: bb28 -> priority: 1 

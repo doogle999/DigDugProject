@@ -16,6 +16,6 @@ public class HighScoreRecord : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		highScoreLabel.text = "High Score: " + highScore.ToString ();
+		highScoreLabel.text = "HIGH SCORE:\n" + highScore.ToString ();
 	}
 }

@@ -16,104 +16,170 @@ public class BlimpAIMovement : Movement
 	private AStarPathing pathing;
 
 	private float speedGho = 2.0F; // Speed when ghost
-	private float speedReg = 3.0F; // Speed when not ghost
+	private float speedReg = 2.0F; // Speed when not ghost
+
+	private float ghostMinTime = 5.0F;
+	private float ghostMaxTime = 20.0F;
 
 	private bool ghostedYet = false;
 	private bool goGhost = false;
 
+	public bool immobilized = false;
+	private float destroyAfterPopTime = 0.3F;
+
 	[SerializeField] private int followRange = 5;
 
-	private PlayerMovement player;
+	public PlayerMovement player;
+
+	public int pumpState = 0; // 0 nothing, 1 slight, 2 more, 3 popped
+
+	[SerializeField] private Sprite blimpSprite;
+	[SerializeField] private Sprite ghostSprite;
+	[SerializeField] private Sprite pumpOneSprite;
+	[SerializeField] private Sprite pumpTwoSprite;
+	[SerializeField] private Sprite popSprite;
 
 	void Start()
 	{
 		getGrid();
 		player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>();
-
-		mode = Mode.hunting;
-		recalculatePath(ref pathing, player.positionScaled);
-		findHuntingDirection();
+		StartCoroutine("activateGhost");
 	}
 
 	void Update()
 	{
-		switch(mode)
+		if(!immobilized)
 		{
-			case Mode.wandering:
+			switch(mode)
 			{
-				if(onRoute)
+				case Mode.wandering:
 				{
-					if(grid.tileInBounds(grid.getTileLocation(getNextPosition())))
+					if(onRoute)
 					{
-						if(moveInDirection(speedReg))
+						if(grid.tileInBounds(grid.getTileLocation(getNextPosition())))
 						{
-							if(!(grid.tileInBounds(grid.getTileLocation(getNextPosition()))) || Direction.passingTileOrWall(grid.getTileLocation(positionScaled), direction, grid))
+							if(moveInDirection(speedReg))
 							{
-								findWanderingDirection();
-							}
-						}
-					}
-					else
-					{
-						onRoute = false;
-					}
-				}
-				else
-				{
-					findWanderingDirection();
-				}
-				break;
-			}
-			case Mode.ghosting:
-			{
-				if(grid.tileInBounds(grid.getTileLocation(getNextPosition())))
-				{
-					if(moveInDirection(speedReg))
-					{
-						findGhostingDirection();
-						if(!grid.getTileState(positionScaled))
-						{
-							if(ghostedYet)
-							{
-								ghostedYet = false;
-								mode = Mode.wandering;
-								findWanderingDirection();
+								if(!(grid.tileInBounds(grid.getTileLocation(getNextPosition()))) || Direction.passingTileOrWall(grid.getTileLocation(positionScaled), direction, grid))
+								{
+									findWanderingDirection();
+								}
+								recalculatePath(ref pathing, player.positionScaled);
+								if(pathing.path.Count != 0 && pathing.path.Count <= followRange)
+								{
+									mode = Mode.hunting;
+									findHuntingDirection();
+								}
+								if(goGhost)
+								{
+									mode = Mode.ghosting;
+									findGhostingDirection();
+								}
 							}
 						}
 						else
 						{
-							ghostedYet = true;
+							onRoute = false;
 						}
 					}
+					else
+					{
+						findWanderingDirection();
+						recalculatePath(ref pathing, player.positionScaled);
+						if(pathing.path.Count != 0 && pathing.path.Count <= followRange)
+						{
+							mode = Mode.hunting;
+							findHuntingDirection();
+						}
+						if(goGhost)
+						{
+							mode = Mode.ghosting;
+							findGhostingDirection();
+						}
+					}
+					break;
 				}
-				break;
-			}
-			case Mode.hunting:
-			{
-				if(onRoute)
+				case Mode.ghosting:
 				{
 					if(grid.tileInBounds(grid.getTileLocation(getNextPosition())))
 					{
 						if(moveInDirection(speedReg))
 						{
-							findHuntingDirection();
+							findGhostingDirection();
+							if(!grid.getTileState(positionScaled))
+							{
+								if(ghostedYet)
+								{
+									GetComponent<SpriteRenderer>().sprite = blimpSprite;
+									ghostedYet = false;
+									goGhost = false;
+									StartCoroutine("activateGhost");
+									mode = Mode.wandering;
+									findWanderingDirection();
+								}
+							}
+							else
+							{
+								GetComponent<SpriteRenderer>().sprite = ghostSprite;
+								ghostedYet = true;
+							}
+						}
+					}
+					break;
+				}
+				case Mode.hunting:
+				{
+					if(onRoute)
+					{
+						if(grid.tileInBounds(grid.getTileLocation(getNextPosition())))
+						{
+							if(moveInDirection(speedReg))
+							{
+								recalculatePath(ref pathing, player.positionScaled);
+								if(pathing.path.Count != 0 && pathing.path.Count <= followRange)
+								{
+									findHuntingDirection();
+								}
+								else
+								{
+									mode = Mode.wandering;
+									findWanderingDirection();
+								}
+							}
+						}
+						else
+						{
+							onRoute = false;
 						}
 					}
 					else
 					{
-						onRoute = false;
+						mode = Mode.wandering;
+						findWanderingDirection();
 					}
+					break;
 				}
-				else
-				{
-					mode = Mode.wandering;
-					findWanderingDirection();
-				}
-				break;
-			}
-			case Mode.fleeing:
+				case Mode.fleeing:
 
-				break;
+					break;
+			}
+		}
+		else
+		{
+			if(pumpState == 1)
+			{
+				GetComponent<SpriteRenderer>().sprite = pumpOneSprite;
+			}
+			else if(pumpState == 2)
+			{
+				GetComponent<SpriteRenderer>().sprite = pumpTwoSprite;
+			}
+			else if(pumpState == 3)
+			{
+				GetComponent<SpriteRenderer>().sprite = popSprite;
+				StartCoroutine("destroyAfterPop");
+				pumpState = 4;
+			}
 		}
 	}
 
@@ -147,19 +213,17 @@ public class BlimpAIMovement : Movement
 		{
 			direction = (Direction.Dir)(1 - (int)Mathf.Sign(dis.y));
 		}
-		print(direction);
 	}
 
 	public void recalculatePath(ref AStarPathing pathing, Vector2 pos)
 	{
 		pathing = new AStarPathing(grid.getTileLocation(pos), grid.getTileLocation(positionScaled), grid);
 
+		pathing.path.Clear();
 		pathing.findPath();
 
-		print(pathing.path.Count);
-
-		pathing.path.RemoveAt(pathing.path.Count - 1);
 		pathing.path.Insert(0, grid.getTileLocation(pos));
+		pathing.path.RemoveAt(pathing.path.Count - 1);
 	}
 
 	private void findHuntingDirection()
@@ -175,5 +239,23 @@ public class BlimpAIMovement : Movement
 		{
 			onRoute = false;
 		}
+	}
+
+	private IEnumerator activateGhost()
+	{
+		float waitTime = Random.Range(ghostMinTime, ghostMaxTime);
+
+		yield return new WaitForSeconds(waitTime);
+
+		goGhost = true;
+	}
+
+	private IEnumerator destroyAfterPop()
+	{
+		GetComponent<AudioSource>().Play();
+		yield return new WaitForSeconds(destroyAfterPopTime);
+		Scoring sc = GameObject.Find("Player One Label").GetComponent<Scoring>();
+		sc.increaseScore.Invoke((sc.enemyMaxScore - sc.enemyMinScore) * ((grid.getDimensions().y - positionScaled.y) / grid.getDimensions().y) + sc.enemyMinScore);
+		Destroy(gameObject);
 	}
 }

@@ -46,12 +46,18 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\PlayerSounds.cs" />
      <Compile Include="Assets\Scripts\AStarPathing.cs" />
+     <Compile Include="Assets\Scripts\BlimpAIManager.cs" />
      <Compile Include="Assets\Scripts\BlimpAIMovement.cs" />
      <Compile Include="Assets\Scripts\Direction.cs" />
+     <Compile Include="Assets\Scripts\FloatUnityEvent.cs" />
+     <Compile Include="Assets\Scripts\GameObjectUnityEvent.cs" />
      <Compile Include="Assets\Scripts\Grid.cs" />
+     <Compile Include="Assets\Scripts\HarpoonHit.cs" />
      <Compile Include="Assets\Scripts\HighScoreRecord.cs" />
      <Compile Include="Assets\Scripts\LevelData.cs" />
+     <Compile Include="Assets\Scripts\LevelManager.cs" />
      <Compile Include="Assets\Scripts\Life.cs" />
      <Compile Include="Assets\Scripts\Movement.cs" />
      <Compile Include="Assets\Scripts\OnePlayerButton.cs" />
@@ -62,6 +68,7 @@
      <Compile Include="Assets\Scripts\Scoring.cs" />
      <Compile Include="Assets\Scripts\UIArea.cs" />
      <Compile Include="Assets\Scripts\Vector2UnityEvent.cs" />
+     <Compile Include="Assets\startMusicPauseAllElse.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>D:/NHSGA/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>

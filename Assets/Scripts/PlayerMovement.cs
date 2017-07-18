@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class PlayerMovement : Movement
 {
@@ -14,88 +15,137 @@ public class PlayerMovement : Movement
 	public Vector2UnityEvent movedThroughVWall = new Vector2UnityEvent();
 	public Vector2UnityEvent movedThroughHWall = new Vector2UnityEvent();
 
+	public UnityEvent playerDied = new UnityEvent();
+
 	private bool shooting = false;
 	private bool shotHit = false;
+	private GameObject enemyHit;
+
 	private float shootExtendDistance = 2.0F;
 	private float shootThickness = 0.1F;
 	private float shootExtendTime = 0.5F;
+	private float pumpCooldownTime = 0.15F;
+	private bool canPump = true;
 
 	private float rotationMax = 15.0F;
-	private float speedRotate = 5.0F;
+	//private float speedRotate = 0.01F;
 
 	private GameObject harpoon;
+
+	private AudioSource audioSource;
+	private PlayerSounds playerSounds;
 
 	void Start()
 	{
 		getGrid();
 
 		harpoon = GameObject.FindGameObjectWithTag("Harpoon");
+		harpoon.transform.localScale = Vector3.zero;
+		harpoon.GetComponent<HarpoonHit>().harpoonHit.AddListener(GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerMovement>().harpoonTrigger);
+		audioSource = GetComponent<AudioSource>();
+		playerSounds = GetComponent<PlayerSounds>();
 
 		movedToTile.AddListener(grid.destroyTile);
 		movedThroughVWall.AddListener(grid.destroyVWall);
 		movedThroughHWall.AddListener(grid.destroyHWall);
+
+		playerDied.AddListener(grid.onPlayerDie);
 	}
 
 	void Update()
 	{
-		if(Input.GetKeyDown(SHOOT_KEY))
+		if(Time.timeScale != 0.0F)
 		{
-			if(!shooting)
+			if(Input.GetKeyDown(SHOOT_KEY))
 			{
-				shooting = true;
-				StartCoroutine("fireHarpoon");
-			}
-		}
-			
-		if(onRoute)
-		{
-			Direction.Dir possibleDirection = direction;
-			bool anyKeyPressed = false;
-			for(int i = 0; i < 4; i++) // Determine the direction that the player is pressing in
-			{
-				if(Input.GetKey(KEY_MAP[((int)direction + i) % 4])) // Check the four directions
+				if(!shooting && !shotHit)
 				{
-					possibleDirection = (Direction.Dir)(((int)direction + i) % 4);
-					anyKeyPressed = true;
+					audioSource.clip = playerSounds.shootingSound;
+					audioSource.Play();
+					shooting = true;
+					StartCoroutine("fireHarpoon");
+				}
+				if(shotHit & canPump)
+				{
+					audioSource.clip = playerSounds.pumpingSound;
+					audioSource.Play();
+					enemyHit.GetComponent<BlimpAIMovement>().pumpState++;
+					if(enemyHit.GetComponent<BlimpAIMovement>().pumpState >= 3)
+					{
+						shotHit = false;
+						enemyHit = null;
+						harpoon.transform.localScale = Vector3.zero;
+					}
+					StartCoroutine("pumpCooldownTimer");
 				}
 			}
 
-			rotateDirection();
-
-			if(anyKeyPressed)
+			if(!shooting && !shotHit)
 			{
-				if(possibleDirection != (Direction.Dir)(((int)direction + 2) % 4)) // Non-opposite direction, move
+				if(onRoute)
 				{
-					Vector2 oldPosition = positionScaled;
-					if(grid.tileInBounds(grid.getTileLocation(getNextPosition())))
+					Direction.Dir possibleDirection = direction;
+					bool anyKeyPressed = false;
+					for(int i = 0; i < 4; i++) // Determine the direction that the player is pressing in
 					{
-						if(moveInDirection(Direction.passingTileOrWall(positionScaled, direction, grid) ? speedDig : speedReg))
+						if(Input.GetKey(KEY_MAP[((int)direction + i) % 4])) // Check the four directions
 						{
-							destroyTilesAndWalls(oldPosition, direction);
+							possibleDirection = (Direction.Dir)(((int)direction + i) % 4);
+							anyKeyPressed = true;
+						}
+					}
+
+					rotateDirection();
+
+					if(anyKeyPressed)
+					{
+						if(!audioSource.isPlaying)
+						{
+							audioSource.clip = playerSounds.walkingSound;
+							audioSource.Play();
+						}
+						if(possibleDirection != (Direction.Dir)(((int)direction + 2) % 4)) // Non-opposite direction, move
+						{
+							Vector2 oldPosition = positionScaled;
+							if(grid.tileInBounds(grid.getTileLocation(getNextPosition())))
+							{
+								if(moveInDirection(Direction.passingTileOrWall(positionScaled, direction, grid) ? speedDig : speedReg))
+								{
+									destroyTilesAndWalls(oldPosition, direction);
+									direction = possibleDirection;
+								}
+							}
+							else
+							{
+								onRoute = false;
+							}
+						}
+						else // Opposite direction, turn around and don't move
+						{
+							positionScaled += Direction.convertDirToUnitVector2(direction);
 							direction = possibleDirection;
+							distance = 1.0F - distance;
 						}
 					}
 					else
 					{
-						onRoute = false;
+						if(audioSource.isPlaying)
+						{
+
+							audioSource.Pause();
+						}
 					}
 				}
-				else // Opposite direction, turn around and don't move
+				else
 				{
-					positionScaled += Direction.convertDirToUnitVector2(direction);
-					direction = possibleDirection;
-					distance = 1.0F - distance;
-				}
-			}
-		}
-		else
-		{
-			for(int i = 0; i < 4; i++) // Determine the direction that the player is pressing in
-			{
-				if(Input.GetKey(KEY_MAP[((int)direction + i) % 4])) // Check the four directions
-				{
-					direction = (Direction.Dir)(((int)direction + i) % 4);
-					onRoute = true;
+					for(int i = 0; i < 4; i++) // Determine the direction that the player is pressing in
+					{
+						if(Input.GetKey(KEY_MAP[((int)direction + i) % 4])) // Check the four directions
+						{
+							direction = (Direction.Dir)(((int)direction + i) % 4);
+							onRoute = true;
+						}
+					}
 				}
 			}
 		}
@@ -141,14 +191,27 @@ public class PlayerMovement : Movement
 
 			Vector2 location = grid.getTileLocation((Vector2)harpoon.transform.localPosition + Direction.convertDirToUnitVector2(direction) * (shootExtendDistance / 2.0F * i / shootExtendTime));
 
+			if(shotHit)
+			{
+				enemyHit.GetComponent<BlimpAIMovement>().immobilized = true;
+				break;
+			}
 			if(!grid.tileInBounds(location) || grid.getTileState(location))
 			{
 				break;
 			}
 			yield return new WaitForSeconds(0.03f);
 		}
-		harpoon.transform.localScale = Vector3.zero;
+		if(!shotHit)
+		{
+			harpoon.transform.localScale = Vector3.zero;
+		}
 		shooting = false;
+	}
+	public void harpoonTrigger(GameObject other)
+	{
+		shotHit = true;
+		enemyHit = other;
 	}
 
 	private void rotateDirection()
@@ -160,7 +223,7 @@ public class PlayerMovement : Movement
 				targetEuler.Set(0, 0, rotationMax);
 				break;
 			case Direction.Dir.R:
-				targetEuler.Set(0, 0, -rotationMax);
+				targetEuler.Set(0, 0, 360 - rotationMax);
 				break;
 			case Direction.Dir.U:
 				targetEuler.Set(0, 0, 0);
@@ -170,17 +233,38 @@ public class PlayerMovement : Movement
 				break;
 		}
 
-		//Vector3 difference = ((targetEuler - transform.localEulerAngles).sqrMagnitude < (transform.localEulerAngles - targetEuler).sqrMagnitude ? targetEuler - transform.localEulerAngles : transform.localEulerAngles - targetEuler);
+		transform.eulerAngles = targetEuler;
+		/*
+			Vector3 difference = targetEuler - transform.localEulerAngles;
+			if(Mathf.Abs(difference.z) > 180)
+			{
+				print("a");
+				difference.z = 360 - difference.z;
+				transform.Rotate(difference * speedRotate);
+			}
+			else
+			{
+				print("b");
+				transform.Rotate(difference * speedRotate);
+			}
+		*/
+	}
 
-		Vector3 difference = targetEuler - transform.localEulerAngles;
-		if(Mathf.Abs(difference.z) > 180)
+	private void OnTriggerEnter2D(Collider2D other)
+	{
+		if(other.tag == "Blimps")
 		{
-			difference.z = 360 - difference.z;
-			transform.Rotate(-difference * Time.deltaTime * speedRotate);
+			if(other.GetComponent<BlimpAIMovement>().pumpState == 0)
+			{
+				playerDied.Invoke();
+			}
 		}
-		else
-		{
-			transform.Rotate(difference * Time.deltaTime * speedRotate);
-		}
+	}
+
+	private IEnumerator pumpCooldownTimer()
+	{
+		canPump = false;
+		yield return new WaitForSeconds(pumpCooldownTime);
+		canPump = true;
 	}
 }

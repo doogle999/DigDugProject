@@ -4,26 +4,33 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class PauseGame : MonoBehaviour {
+	//public GameObject button1;
 	public Button button;
 	public Text buttonText;
-	public Text status;
+	public AudioSource music;
 
 	int count = 0;
 
 	// Use this for initialization
 	void Start () {
-		//button.onClick.AddListener(onClick);
-		status.enabled = false;
+		button.onClick.AddListener(() => taskOnClick());
+		//button.onClick.AddListener(taskOnClick);
+		//status.enabled = false;
+		print (button);
 	}
 
-	public void onClick(){
+	void taskOnClick(){
 		print("a");
 		if (count % 2 == 0) {
 			buttonText.text = "Continue";
-			status.enabled = true;
+			Time.timeScale = 0;
+			music.Pause ();
+			//status.enabled = true;
 		} else {
 			buttonText.text = "Pause";
-			status.enabled = false;
+			Time.timeScale = 1;
+			music.UnPause ();
+			//status.enabled = false;
 		}
 		count++;
 	}
